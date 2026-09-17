@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSesion } from "@/lib/sesion-cliente";
 import { usePestanas } from "@/components/pestanas/ContextoPestanas";
+import BuscadorGlobal from "@/components/BuscadorGlobal";
 import Icono from "@/components/ui/Icono";
 import Pildora from "@/components/ui/Pildora";
 import { Tarjeta, TarjetaOscura } from "@/components/ui/Tarjeta";
@@ -53,10 +54,7 @@ export default function VistaDashboard() {
           <p className="text-sm text-texto-2">Hola {sesion.nombre}, este es el resumen de hoy.</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="hidden items-center gap-2 rounded-full bg-lienzo px-4 py-2.5 text-sm text-texto-3 sm:flex">
-            <Icono nombre="buscar" className="size-4" />
-            Buscar
-          </span>
+          <BuscadorGlobal />
           <button
             aria-label="Notificaciones"
             className="grid size-11 place-items-center rounded-full bg-lienzo text-texto-2 transition hover:text-texto"
