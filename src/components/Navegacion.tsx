@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePestanas } from "@/components/pestanas/ContextoPestanas";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import clsx from "clsx";
 import Icono, { type NombreIcono } from "@/components/ui/Icono";
 import { iniciales } from "@/lib/formato";
@@ -26,6 +26,10 @@ const ETIQUETA_ROL: Record<Sesion["rol"], string> = {
   CONSULTA: "Solo consulta",
 };
 
+// Misma curva que usan las hojas/menús nativos de iOS: entra rápido y
+// frena suave, en vez de la curva lineal/ease por defecto de un modal web.
+const EASE_NATIVO = "cubic-bezier(0.32,0.72,0,1)";
+
 export default function Navegacion({ sesion }: { sesion: Sesion }) {
   const [abierto, setAbierto] = useState(false);
   const ruta = usePathname();
@@ -34,6 +38,22 @@ export default function Navegacion({ sesion }: { sesion: Sesion }) {
 
   const enlaces = ENLACES.filter((e) => !e.roles || e.roles.includes(sesion.rol));
 
+  // Bloquea el scroll del fondo mientras el menú está abierto, como en una
+  // hoja nativa, y cierra con la tecla atrás/Escape.
+  useEffect(() => {
+    if (!abierto) return;
+    const original = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    function tecla(e: KeyboardEvent) {
+      if (e.key === "Escape") setAbierto(false);
+    }
+    document.addEventListener("keydown", tecla);
+    return () => {
+      document.body.style.overflow = original;
+      document.removeEventListener("keydown", tecla);
+    };
+  }, [abierto]);
+
   async function salir() {
     await fetch("/api/auth/logout", { method: "POST" });
     router.replace("/login");
@@ -41,7 +61,13 @@ export default function Navegacion({ sesion }: { sesion: Sesion }) {
   }
 
   const contenido = (
-    <div className="flex h-full flex-col px-4 py-6">
+    <div
+      className="flex h-full flex-col overflow-y-auto scroll-fino px-4"
+      style={{
+        paddingTop: "calc(env(safe-area-inset-top, 0px) + 1.5rem)",
+        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)",
+      }}
+    >
       <Link href="/dashboard" className="mb-8 flex items-center gap-2.5 px-2">
         <span className="grid size-9 place-items-center rounded-2xl bg-tinta text-white">
           <Icono nombre="cobros" className="size-4.5" />
@@ -71,7 +97,7 @@ export default function Navegacion({ sesion }: { sesion: Sesion }) {
               }}
               aria-current={activo ? "page" : undefined}
               className={clsx(
-                "flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium transition",
+                "flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium transition active:scale-[0.97]",
                 activo
                   ? "bg-superficie text-texto shadow-[0_2px_12px_rgba(17,24,39,0.06)]"
                   : "text-texto-2 hover:bg-superficie/60 hover:text-texto",
@@ -93,7 +119,7 @@ export default function Navegacion({ sesion }: { sesion: Sesion }) {
 
       <button
         onClick={salir}
-        className="mt-6 flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium text-texto-2 transition hover:bg-superficie hover:text-texto"
+        className="mt-6 flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium text-texto-2 transition active:scale-[0.97] hover:bg-superficie hover:text-texto"
       >
         <span className="grid size-9 shrink-0 place-items-center rounded-full bg-superficie">
           <Icono nombre="salir" className="size-4.5" />
@@ -105,11 +131,17 @@ export default function Navegacion({ sesion }: { sesion: Sesion }) {
 
   return (
     <>
-      <header className="sticky top-0 z-30 flex items-center justify-between bg-lienzo/90 px-4 py-3 backdrop-blur lg:hidden">
+      <header
+        className="sticky top-0 z-30 flex items-center justify-between border-b border-borde bg-lienzo/90 px-4 backdrop-blur lg:hidden"
+        style={{
+          paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.75rem)",
+          paddingBottom: "0.75rem",
+        }}
+      >
         <button
           onClick={() => setAbierto(true)}
           aria-label="Abrir menú"
-          className="grid size-11 place-items-center rounded-full bg-superficie shadow-[0_2px_12px_rgba(17,24,39,0.06)]"
+          className="grid size-11 place-items-center rounded-full bg-superficie shadow-[0_2px_12px_rgba(17,24,39,0.06)] transition active:scale-90"
         >
           <Icono nombre="menu" className="size-5" />
         </button>
@@ -121,25 +153,33 @@ export default function Navegacion({ sesion }: { sesion: Sesion }) {
 
       <aside className="hidden w-64 shrink-0 lg:block">{contenido}</aside>
 
-      {abierto && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <button
-            aria-label="Cerrar menú"
-            onClick={() => setAbierto(false)}
-            className="absolute inset-0 bg-tinta/40 backdrop-blur-sm"
-          />
-          <div className="absolute inset-y-0 left-0 w-72 bg-lienzo shadow-2xl">
-            <button
-              onClick={() => setAbierto(false)}
-              aria-label="Cerrar menú"
-              className="absolute top-6 right-4 grid size-9 place-items-center rounded-full bg-superficie text-texto-2"
-            >
-              <Icono nombre="cerrar" className="size-4.5" />
-            </button>
-            {contenido}
-          </div>
+      {/* Siempre montado (solo se anima con transform/opacity) para que el
+          deslizamiento de entrada y salida sea real, no un aparecer/desaparecer
+          instantáneo. */}
+      <div
+        className={clsx(
+          "fixed inset-0 z-50 lg:hidden",
+          abierto ? "pointer-events-auto" : "pointer-events-none",
+        )}
+        aria-hidden={!abierto}
+      >
+        <button
+          aria-label="Cerrar menú"
+          onClick={() => setAbierto(false)}
+          tabIndex={abierto ? 0 : -1}
+          className="absolute inset-0 bg-tinta/40 backdrop-blur-sm transition-opacity duration-300"
+          style={{ opacity: abierto ? 1 : 0, transitionTimingFunction: EASE_NATIVO }}
+        />
+        <div
+          className="absolute inset-y-0 left-0 w-[82%] max-w-80 rounded-r-[28px] bg-lienzo shadow-2xl transition-transform duration-300"
+          style={{
+            transform: abierto ? "translateX(0)" : "translateX(-100%)",
+            transitionTimingFunction: EASE_NATIVO,
+          }}
+        >
+          {contenido}
         </div>
-      )}
+      </div>
     </>
   );
 }
