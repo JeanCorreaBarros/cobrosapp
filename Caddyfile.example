@@ -1,0 +1,15 @@
+# Ejemplo de proxy con HTTPS automático (Let's Encrypt) usando Caddy.
+# Renómbralo a "Caddyfile", cambia el dominio y añade este servicio a tu compose:
+#
+# caddy:
+#   image: caddy:2-alpine
+#   restart: unless-stopped
+#   ports: ["80:80", "443:443"]
+#   volumes:
+#     - ./Caddyfile:/etc/caddy/Caddyfile
+#     - caddy_data:/data
+#   depends_on: [web]
+
+tu-dominio.com {
+	reverse_proxy web:3000
+}

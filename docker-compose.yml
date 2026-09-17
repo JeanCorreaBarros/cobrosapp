@@ -1,0 +1,40 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: cobro_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cobro}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cobro123}
+      POSTGRES_DB: ${POSTGRES_DB:-cobro}
+    ports:
+      - "5433:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cobro} -d ${POSTGRES_DB:-cobro}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build: .
+    container_name: cobro_web
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cobro}:${POSTGRES_PASSWORD:-cobro123}@db:5432/${POSTGRES_DB:-cobro}?schema=public
+      AUTH_SECRET: ${AUTH_SECRET:-cambia-esta-clave-en-produccion-min-32-chars}
+      NODE_ENV: development
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    command: sh -c "npx prisma db push && npx tsx prisma/seed.ts && npm run dev"
+
+volumes:
+  db_data:

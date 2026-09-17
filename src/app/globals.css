@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+@theme {
+  --color-lienzo: #eef1f6;
+  --color-superficie: #ffffff;
+  --color-tinta: #0f1115;
+  --color-tinta-suave: #1b1e26;
+  --color-texto: #14161c;
+  --color-texto-2: #6b7280;
+  --color-texto-3: #9aa1b1;
+  --color-borde: #e6e9f0;
+
+  --color-lila: #ede9fe;
+  --color-lila-ink: #5b21b6;
+  --color-menta: #d6f3e5;
+  --color-menta-ink: #06694a;
+  --color-rosa: #fde7f0;
+  --color-rosa-ink: #9d174d;
+  --color-durazno: #ffedd5;
+  --color-durazno-ink: #9a3412;
+  --color-cielo: #dcebff;
+  --color-cielo-ink: #1e40af;
+
+  --radius-tarjeta: 24px;
+  --radius-interno: 16px;
+
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  html,
+  body {
+    background: var(--color-lienzo);
+    color: var(--color-texto);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  * {
+    border-color: var(--color-borde);
+  }
+}
+
+@utility tarjeta {
+  background: var(--color-superficie);
+  border-radius: var(--radius-tarjeta);
+  box-shadow: 0 4px 24px rgba(17, 24, 39, 0.06);
+}
+
+@utility tarjeta-oscura {
+  background: var(--color-tinta);
+  color: #ffffff;
+  border-radius: var(--radius-tarjeta);
+  box-shadow: 0 8px 32px rgba(15, 17, 21, 0.28);
+}
+
+@utility scroll-fino {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-borde) transparent;
+}

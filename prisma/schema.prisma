@@ -1,0 +1,230 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Rol {
+  ADMIN
+  COBRADOR
+  CONSULTA
+}
+
+model Usuario {
+  id             String    @id @default(cuid())
+  usuario        String    @unique
+  nombre         String
+  correo         String?   @unique
+  passwordHash   String
+  rol            Rol       @default(COBRADOR)
+  activo         Boolean   @default(true)
+  intentosFallidos Int     @default(0)
+  bloqueadoHasta DateTime?
+  ultimoAcceso   DateTime?
+  zonaId         String?
+  zona           Zona?     @relation(fields: [zonaId], references: [id], onDelete: SetNull)
+  auditorias     Auditoria[]
+  pagos          Pago[]
+  creadoEn       DateTime  @default(now())
+  actualizadoEn  DateTime  @updatedAt
+  eliminadoEn    DateTime?
+
+  @@index([usuario])
+  @@map("usuarios")
+}
+
+model Zona {
+  id            String    @id @default(cuid())
+  nombre        String    @unique
+  descripcion   String?
+  usuarios      Usuario[]
+  clientes      Cliente[]
+  creadoEn      DateTime  @default(now())
+  actualizadoEn DateTime  @updatedAt
+  eliminadoEn   DateTime?
+
+  @@map("zonas")
+}
+
+model Auditoria {
+  id         String   @id @default(cuid())
+  usuarioId  String?
+  usuario    Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+  accion     String
+  entidad    String
+  entidadId  String?
+  detalle    Json?
+  ip         String?
+  creadoEn   DateTime @default(now())
+
+  @@index([entidad, entidadId])
+  @@index([creadoEn])
+  @@map("auditorias")
+}
+
+model Configuracion {
+  id                String   @id @default("default")
+  empresaNombre     String   @default("Mi Empresa de Cobro")
+  empresaRnc        String?
+  empresaTelefono   String?
+  empresaDireccion  String?
+  logoUrl           String?
+  moneda            String   @default("COP")
+  simboloMoneda     String   @default("$")
+  zonaHoraria       String   @default("America/Bogota")
+  tasaPorDefecto    Decimal  @default(10) @db.Decimal(6, 2)
+  frecuenciaDefecto String   @default("SEMANAL")
+  tipoInteresDefecto TipoInteres @default(SIMPLE)
+  moraPorcentaje    Decimal  @default(2) @db.Decimal(6, 2)
+  ordenAplicacionPago String @default("MORA_INTERES_CAPITAL")
+  actualizadoEn     DateTime @updatedAt
+
+  @@map("configuracion")
+}
+
+enum TipoInteres {
+  SIMPLE
+  SOBRE_SALDO
+}
+
+enum EstadoCliente {
+  ACTIVO
+  MOROSO
+  LISTA_NEGRA
+  INACTIVO
+}
+
+model Cliente {
+  id             String        @id @default(cuid())
+  codigo         String        @unique
+  nombre         String
+  cedula         String        @unique
+  telefono       String
+  telefonoAlt    String?
+  correo         String?
+  direccion      String?
+  fotoUrl        String?
+  referencia1Nombre   String?
+  referencia1Telefono String?
+  referencia2Nombre   String?
+  referencia2Telefono String?
+  notas          String?
+  estado         EstadoCliente @default(ACTIVO)
+  zonaId         String?
+  zona           Zona?         @relation(fields: [zonaId], references: [id], onDelete: SetNull)
+  creadoPorId    String?
+  creadoEn       DateTime      @default(now())
+  actualizadoEn  DateTime      @updatedAt
+  eliminadoEn    DateTime?
+  prestamos      Prestamo[]
+
+  @@index([nombre])
+  @@index([cedula])
+  @@index([estado])
+  @@map("clientes")
+}
+
+enum FrecuenciaPago {
+  DIARIO
+  SEMANAL
+  QUINCENAL
+  MENSUAL
+}
+
+enum EstadoPrestamo {
+  ACTIVO
+  ATRASADO
+  PAGADO
+  CANCELADO
+  INCOBRABLE
+}
+
+model Prestamo {
+  id            String         @id @default(cuid())
+  codigo        String         @unique
+  clienteId     String
+  cliente       Cliente        @relation(fields: [clienteId], references: [id])
+  montoCapital  Decimal        @db.Decimal(12, 2)
+  tasaInteres   Decimal        @db.Decimal(6, 2)
+  tipoInteres   TipoInteres    @default(SIMPLE)
+  frecuencia    FrecuenciaPago @default(SEMANAL)
+  plazoCuotas   Int
+  fechaInicio   DateTime
+  montoTotal    Decimal        @db.Decimal(12, 2)
+  montoCuota    Decimal        @db.Decimal(12, 2)
+  estado        EstadoPrestamo @default(ACTIVO)
+  notas         String?
+  creadoPorId   String?
+  cuotas        Cuota[]
+  pagos         Pago[]
+  creadoEn      DateTime       @default(now())
+  actualizadoEn DateTime       @updatedAt
+  eliminadoEn   DateTime?
+
+  @@index([clienteId])
+  @@index([estado])
+  @@map("prestamos")
+}
+
+model Cuota {
+  id               String           @id @default(cuid())
+  prestamoId       String
+  prestamo         Prestamo         @relation(fields: [prestamoId], references: [id], onDelete: Cascade)
+  numero           Int
+  fechaVencimiento DateTime
+  capital          Decimal          @db.Decimal(12, 2)
+  interes          Decimal          @db.Decimal(12, 2)
+  montoCuota       Decimal          @db.Decimal(12, 2)
+  saldoCapital     Decimal          @db.Decimal(12, 2)
+  montoPagado      Decimal          @default(0) @db.Decimal(12, 2)
+  aplicaciones     PagoAplicacion[]
+
+  @@unique([prestamoId, numero])
+  @@index([fechaVencimiento])
+  @@map("cuotas")
+}
+
+enum MetodoPago {
+  EFECTIVO
+  TRANSFERENCIA
+  TARJETA
+  OTRO
+}
+
+model Pago {
+  id              String           @id @default(cuid())
+  codigo          String           @unique
+  prestamoId      String
+  prestamo        Prestamo         @relation(fields: [prestamoId], references: [id])
+  monto           Decimal          @db.Decimal(12, 2)
+  metodo          MetodoPago       @default(EFECTIVO)
+  fecha           DateTime         @default(now())
+  anulado         Boolean          @default(false)
+  motivoAnulacion String?
+  usuarioId       String?
+  usuario         Usuario?         @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+  aplicaciones    PagoAplicacion[]
+  creadoEn        DateTime         @default(now())
+
+  @@index([prestamoId])
+  @@index([fecha])
+  @@map("pagos")
+}
+
+model PagoAplicacion {
+  id           String  @id @default(cuid())
+  pagoId       String
+  pago         Pago    @relation(fields: [pagoId], references: [id], onDelete: Cascade)
+  cuotaId      String
+  cuota        Cuota   @relation(fields: [cuotaId], references: [id])
+  montoMora    Decimal @default(0) @db.Decimal(12, 2)
+  montoInteres Decimal @default(0) @db.Decimal(12, 2)
+  montoCapital Decimal @default(0) @db.Decimal(12, 2)
+
+  @@index([cuotaId])
+  @@index([pagoId])
+  @@map("pago_aplicaciones")
+}
