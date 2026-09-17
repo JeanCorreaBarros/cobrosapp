@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requerirSesion, esSesion, requerirRol } from "@/lib/api";
+import { requerirSesion, esSesion, requerirRol, requerirEscritura } from "@/lib/api";
 import { esquemaCliente } from "@/lib/validaciones/cliente";
 
 type Contexto = { params: Promise<{ id: string }> };
@@ -25,6 +25,8 @@ export async function GET(_request: Request, { params }: Contexto) {
 export async function PATCH(request: Request, { params }: Contexto) {
   const sesion = await requerirSesion();
   if (!esSesion(sesion)) return sesion;
+  const permiso = requerirEscritura(sesion);
+  if (permiso) return permiso;
 
   const { id } = await params;
   const cuerpo = await request.json().catch(() => null);

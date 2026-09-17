@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requerirSesion, esSesion, siguienteCodigoPago } from "@/lib/api";
+import { requerirSesion, esSesion, requerirEscritura, siguienteCodigoPago } from "@/lib/api";
 import { esquemaPago } from "@/lib/validaciones/pago";
 import { distribuirPago, totalPendientePrestamo, calcularEstadoPrestamo } from "@/lib/pagos";
 import type { Prisma } from "@prisma/client";
@@ -52,6 +52,8 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const sesion = await requerirSesion();
   if (!esSesion(sesion)) return sesion;
+  const permiso = requerirEscritura(sesion);
+  if (permiso) return permiso;
 
   const cuerpo = await request.json().catch(() => null);
   const datos = esquemaPago.safeParse(cuerpo);

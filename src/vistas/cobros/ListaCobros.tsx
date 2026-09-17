@@ -89,10 +89,12 @@ export default function ListaCobros() {
             {soloHoy ? "Caja del día" : "Historial de pagos"} · {total} pagos
           </p>
         </div>
-        <Boton onClick={() => setModalAbierto(true)}>
-          <Icono nombre="cobros" className="size-4" />
-          Registrar pago
-        </Boton>
+        {sesion.rol !== "CONSULTA" && (
+          <Boton onClick={() => setModalAbierto(true)}>
+            <Icono nombre="cobros" className="size-4" />
+            Registrar pago
+          </Boton>
+        )}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

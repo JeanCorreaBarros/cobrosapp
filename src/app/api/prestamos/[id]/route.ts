@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requerirSesion, esSesion, requerirRol } from "@/lib/api";
+import { requerirSesion, esSesion, requerirRol, requerirEscritura } from "@/lib/api";
 import { z } from "zod";
 
 type Contexto = { params: Promise<{ id: string }> };
@@ -25,14 +25,19 @@ export async function GET(_request: Request, { params }: Contexto) {
   return NextResponse.json({ prestamo });
 }
 
+// ACTIVO, ATRASADO y PAGADO los calcula el sistema de pagos automáticamente
+// (src/lib/pagos.ts); nunca deben poder fijarse a mano desde aquí, o alguien
+// podría marcar un préstamo como pagado sin haber cobrado un peso.
 const esquemaEdicion = z.object({
   notas: z.string().trim().max(500).optional().or(z.literal("")),
-  estado: z.enum(["ACTIVO", "ATRASADO", "PAGADO", "CANCELADO", "INCOBRABLE"]).optional(),
+  estado: z.enum(["CANCELADO", "INCOBRABLE"]).optional(),
 });
 
 export async function PATCH(request: Request, { params }: Contexto) {
   const sesion = await requerirSesion();
   if (!esSesion(sesion)) return sesion;
+  const permiso = requerirEscritura(sesion);
+  if (permiso) return permiso;
 
   const { id } = await params;
   const cuerpo = await request.json().catch(() => null);

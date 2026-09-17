@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requerirSesion, esSesion } from "@/lib/api";
+import { requerirSesion, esSesion, requerirEscritura } from "@/lib/api";
 import { esquemaAnulacion } from "@/lib/validaciones/pago";
 import { calcularEstadoPrestamo } from "@/lib/pagos";
 
@@ -9,6 +9,8 @@ type Contexto = { params: Promise<{ id: string }> };
 export async function POST(request: Request, { params }: Contexto) {
   const sesion = await requerirSesion();
   if (!esSesion(sesion)) return sesion;
+  const permiso = requerirEscritura(sesion);
+  if (permiso) return permiso;
 
   const { id } = await params;
   const cuerpo = await request.json().catch(() => null);
@@ -28,9 +30,9 @@ export async function POST(request: Request, { params }: Contexto) {
     return NextResponse.json({ error: "Este pago ya estaba anulado" }, { status: 409 });
   }
 
+  const aFechaUTC = (f: Date) => f.toISOString().slice(0, 10);
   const esCreador = pago.usuarioId === sesion.id;
-  const mismodDia =
-    new Date(pago.fecha).toDateString() === new Date().toDateString();
+  const mismodDia = aFechaUTC(new Date(pago.fecha)) === aFechaUTC(new Date());
   if (sesion.rol !== "ADMIN" && !(esCreador && mismodDia)) {
     return NextResponse.json(
       { error: "Solo un administrador puede anular este pago" },

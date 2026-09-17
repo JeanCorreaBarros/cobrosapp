@@ -4,8 +4,22 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { crearCookieSesion } from "@/lib/auth";
 
+// x-forwarded-for lo controla quien hace la petición; sin un proxy de
+// confianza delante no prueba nada, pero igual se recorta y limpia para que
+// no se pueda usar para inyectar datos raros en la bitácora de auditoría.
+function ipParaAuditoria(request: Request): string | undefined {
+  const valor = request.headers.get("x-forwarded-for");
+  if (!valor) return undefined;
+  return valor.replace(/[\r\n]/g, "").slice(0, 100);
+}
+
 const MAX_INTENTOS = 5;
 const BLOQUEO_MINUTOS = 15;
+
+// Hash sin usuario real detrás: se compara contra esto cuando el usuario no
+// existe, para que responder tome el mismo tiempo que con un usuario válido
+// y no se pueda averiguar por temporización qué nombres de usuario existen.
+const HASH_SEÑUELO = "$2b$10$CwTycUXWue0Thq9StjUM0uJ8xIu63q9AhKRy2A9rr8lzSg1sJGrfa";
 
 const esquema = z.object({
   usuario: z.string().trim().min(1, "Escribe tu usuario"),
@@ -28,6 +42,9 @@ export async function POST(request: Request) {
   const generico = { error: "Usuario o contraseña incorrectos" };
 
   if (!registro || !registro.activo || registro.eliminadoEn) {
+    // Se compara igual contra un hash señuelo: si no, esta rama respondería
+    // más rápido que la de credenciales inválidas y delataría qué usuarios existen.
+    await bcrypt.compare(password, HASH_SEÑUELO);
     return NextResponse.json(generico, { status: 401 });
   }
 
@@ -76,7 +93,7 @@ export async function POST(request: Request) {
       accion: "INICIO_SESION",
       entidad: "Usuario",
       entidadId: registro.id,
-      ip: request.headers.get("x-forwarded-for") ?? undefined,
+      ip: ipParaAuditoria(request),
     },
   });
 

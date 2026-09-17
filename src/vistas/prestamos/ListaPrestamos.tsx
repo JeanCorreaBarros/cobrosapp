@@ -7,6 +7,7 @@ import Boton from "@/components/ui/Boton";
 import Modal from "@/components/ui/Modal";
 import FormularioPrestamo, { type ValoresPrestamo } from "./FormularioPrestamo";
 import { usePestanas } from "@/components/pestanas/ContextoPestanas";
+import { useSesion } from "@/lib/sesion-cliente";
 import { moneda, fecha } from "@/lib/formato";
 import { ETIQUETA_TIPO_INTERES, ETIQUETA_FRECUENCIA } from "@/lib/amortizacion";
 import type { Prestamo } from "@/lib/tipos";
@@ -33,6 +34,7 @@ function nombreCliente(cliente: Prestamo["cliente"]) {
 
 export default function ListaPrestamos() {
   const { abrir } = usePestanas();
+  const sesion = useSesion();
   const [prestamos, setPrestamos] = useState<Prestamo[]>([]);
   const [total, setTotal] = useState(0);
   const [pagina, setPagina] = useState(1);
@@ -97,10 +99,12 @@ export default function ListaPrestamos() {
           <h1 className="text-2xl font-bold tracking-tight">Préstamos</h1>
           <p className="text-sm text-texto-2">{total} préstamos registrados</p>
         </div>
-        <Boton onClick={() => setModalAbierto(true)}>
-          <Icono nombre="prestamos" className="size-4" />
-          Nuevo préstamo
-        </Boton>
+        {sesion.rol !== "CONSULTA" && (
+          <Boton onClick={() => setModalAbierto(true)}>
+            <Icono nombre="prestamos" className="size-4" />
+            Nuevo préstamo
+          </Boton>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-3">

@@ -7,6 +7,7 @@ import Boton from "@/components/ui/Boton";
 import Modal from "@/components/ui/Modal";
 import FormularioCliente, { type ValoresFormulario } from "./FormularioCliente";
 import { usePestanas } from "@/components/pestanas/ContextoPestanas";
+import { useSesion } from "@/lib/sesion-cliente";
 import type { Cliente, Zona } from "@/lib/tipos";
 
 const TONO_ESTADO: Record<Cliente["estado"], "menta" | "rosa" | "durazno" | "neutro"> = {
@@ -30,6 +31,8 @@ function nombreZona(zona: Cliente["zona"]) {
 
 export default function ListaClientes() {
   const { abrir } = usePestanas();
+  const sesion = useSesion();
+  const puedeEscribir = sesion.rol !== "CONSULTA";
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [zonas, setZonas] = useState<Zona[]>([]);
   const [total, setTotal] = useState(0);
@@ -106,10 +109,12 @@ export default function ListaClientes() {
           <h1 className="text-2xl font-bold tracking-tight">Clientes</h1>
           <p className="text-sm text-texto-2">{total} clientes registrados</p>
         </div>
-        <Boton onClick={() => setModalAbierto(true)}>
-          <Icono nombre="usuario" className="size-4" />
-          Nuevo cliente
-        </Boton>
+        {puedeEscribir && (
+          <Boton onClick={() => setModalAbierto(true)}>
+            <Icono nombre="usuario" className="size-4" />
+            Nuevo cliente
+          </Boton>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-3">

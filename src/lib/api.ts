@@ -21,6 +21,12 @@ export function requerirRol(sesion: Sesion, roles: Sesion["rol"][]): NextRespons
   return null;
 }
 
+/** El rol CONSULTA es de solo lectura: nunca debe poder crear, editar,
+ *  eliminar ni anular nada. Usar en todo endpoint que escriba datos. */
+export function requerirEscritura(sesion: Sesion): NextResponse | null {
+  return requerirRol(sesion, ["ADMIN", "COBRADOR"]);
+}
+
 export async function siguienteCodigoCliente(): Promise<string> {
   const ultimo = await prisma.cliente.findFirst({
     orderBy: { codigo: "desc" },
