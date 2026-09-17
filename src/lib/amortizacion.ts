@@ -21,7 +21,7 @@ function redondear(valor: number) {
   return Math.round(valor * 100) / 100;
 }
 
-function sumarPeriodo(fecha: Date, frecuencia: FrecuenciaPago, periodos: number) {
+export function sumarPeriodo(fecha: Date, frecuencia: FrecuenciaPago, periodos: number) {
   const resultado = new Date(fecha);
   switch (frecuencia) {
     case "DIARIO":

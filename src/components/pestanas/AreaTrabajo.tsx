@@ -4,6 +4,7 @@ import VistaDashboard from "@/vistas/Dashboard";
 import VistaClientes from "@/vistas/Clientes";
 import VistaPrestamos from "@/vistas/Prestamos";
 import VistaCobros from "@/vistas/Cobros";
+import VistaSeguridad from "@/vistas/Seguridad";
 import VistaAgenda from "@/vistas/Agenda";
 import VistaReportes from "@/vistas/Reportes";
 import VistaConfiguracion from "@/vistas/Configuracion";
@@ -15,6 +16,7 @@ const VISTAS: Record<string, React.ComponentType<{ parametro?: string | null }>>
   "/clientes": VistaClientes,
   "/prestamos": VistaPrestamos,
   "/cobros": VistaCobros,
+  "/seguridad": VistaSeguridad,
   "/agenda": VistaAgenda,
   "/reportes": VistaReportes,
   "/configuracion": VistaConfiguracion,

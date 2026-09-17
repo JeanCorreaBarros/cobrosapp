@@ -26,6 +26,13 @@ export const VISTAS: DefinicionVista[] = [
     icono: "prestamos",
   },
   { patron: /^\/cobros$/, ruta: "/cobros", titulo: "Cobros", icono: "cobros" },
+  { patron: /^\/seguridad$/, ruta: "/seguridad", titulo: "Seguridad", icono: "candado" },
+  {
+    patron: /^\/seguridad\/([\w-]+)$/,
+    ruta: "/seguridad",
+    titulo: (m) => `Póliza ${m[1].slice(0, 6)}`,
+    icono: "candado",
+  },
   { patron: /^\/agenda$/, ruta: "/agenda", titulo: "Agenda", icono: "agenda" },
   { patron: /^\/reportes$/, ruta: "/reportes", titulo: "Reportes", icono: "reportes" },
   {

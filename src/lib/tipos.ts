@@ -61,6 +61,50 @@ export type AplicacionPago = {
   cuota: { numero: number };
 };
 
+export type CuotaSeguridad = {
+  id: string;
+  numero: number;
+  fechaVencimiento: string;
+  montoCuota: string;
+  montoPagado: string;
+};
+
+export type PolizaSeguridad = {
+  id: string;
+  codigo: string;
+  clienteId: string;
+  cliente: { id?: string; nombre: string; codigo?: string; telefono?: string };
+  montoCuota: string;
+  frecuencia: "DIARIO" | "SEMANAL" | "QUINCENAL" | "MENSUAL";
+  fechaInicio: string;
+  estado: "ACTIVA" | "ATRASADA" | "CANCELADA";
+  notas: string | null;
+  cuotas?: CuotaSeguridad[];
+  creadoEn: string;
+  actualizadoEn: string;
+};
+
+export type AplicacionPagoSeguridad = {
+  id: string;
+  monto: string;
+  cuota: { numero: number };
+};
+
+export type PagoSeguridad = {
+  id: string;
+  codigo: string;
+  polizaId: string;
+  monto: string;
+  metodo: "EFECTIVO" | "TRANSFERENCIA" | "TARJETA" | "OTRO";
+  fecha: string;
+  anulado: boolean;
+  motivoAnulacion: string | null;
+  usuario: { nombre: string } | null;
+  poliza?: { codigo: string; cliente: { nombre: string } };
+  aplicaciones?: AplicacionPagoSeguridad[];
+  creadoEn: string;
+};
+
 export type Pago = {
   id: string;
   codigo: string;

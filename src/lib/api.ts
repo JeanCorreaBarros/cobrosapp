@@ -53,3 +53,52 @@ export async function siguienteCodigoPago(): Promise<string> {
   const numero = ultimo ? parseInt(ultimo.codigo.split("-")[1] ?? "0", 10) || 0 : 0;
   return `PAG-${String(numero + 1).padStart(5, "0")}`;
 }
+
+export async function siguienteCodigoPoliza(): Promise<string> {
+  const ultimo = await prisma.polizaSeguridad.findFirst({
+    orderBy: { codigo: "desc" },
+    select: { codigo: true },
+  });
+  const numero = ultimo ? parseInt(ultimo.codigo.split("-")[1] ?? "0", 10) || 0 : 0;
+  return `SEG-${String(numero + 1).padStart(4, "0")}`;
+}
+
+export async function siguienteCodigoPagoSeguridad(): Promise<string> {
+  const ultimo = await prisma.pagoSeguridad.findFirst({
+    orderBy: { codigo: "desc" },
+    select: { codigo: true },
+  });
+  const numero = ultimo ? parseInt(ultimo.codigo.split("-")[1] ?? "0", 10) || 0 : 0;
+  return `PAGS-${String(numero + 1).padStart(5, "0")}`;
+}
+
+/** Genera cuotas nuevas si a la póliza le quedan menos del horizonte
+ *  configurado de cuotas vigentes; se llama antes de leer o cobrar una
+ *  póliza para que nunca se quede sin cuotas por delante. */
+export async function asegurarCuotasSeguridad(polizaId: string): Promise<void> {
+  const { calcularCuotasFaltantes } = await import("@/lib/seguridad");
+
+  const poliza = await prisma.polizaSeguridad.findUnique({
+    where: { id: polizaId },
+    include: { cuotas: { select: { numero: true, fechaVencimiento: true } } },
+  });
+  if (!poliza || poliza.estado === "CANCELADA") return;
+
+  const faltantes = calcularCuotasFaltantes(
+    poliza.fechaInicio,
+    poliza.frecuencia,
+    Number(poliza.montoCuota),
+    poliza.cuotas,
+  );
+  if (faltantes.length === 0) return;
+
+  await prisma.cuotaSeguridad.createMany({
+    data: faltantes.map((c) => ({
+      polizaId,
+      numero: c.numero,
+      fechaVencimiento: c.fechaVencimiento,
+      montoCuota: c.montoCuota,
+    })),
+    skipDuplicates: true,
+  });
+}

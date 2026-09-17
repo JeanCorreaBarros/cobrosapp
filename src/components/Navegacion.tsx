@@ -14,6 +14,7 @@ const ENLACES: { href: string; etiqueta: string; icono: NombreIcono; roles?: Ses
   { href: "/clientes", etiqueta: "Clientes", icono: "clientes" },
   { href: "/prestamos", etiqueta: "Préstamos", icono: "prestamos" },
   { href: "/cobros", etiqueta: "Cobros", icono: "cobros" },
+  { href: "/seguridad", etiqueta: "Seguridad", icono: "candado" },
   { href: "/agenda", etiqueta: "Agenda", icono: "agenda" },
   { href: "/reportes", etiqueta: "Reportes", icono: "reportes" },
   { href: "/configuracion", etiqueta: "Configuración", icono: "config", roles: ["ADMIN"] },

@@ -28,6 +28,7 @@ model Usuario {
   zona           Zona?     @relation(fields: [zonaId], references: [id], onDelete: SetNull)
   auditorias     Auditoria[]
   pagos          Pago[]
+  pagosSeguridad PagoSeguridad[]
   creadoEn       DateTime  @default(now())
   actualizadoEn  DateTime  @updatedAt
   eliminadoEn    DateTime?
@@ -120,6 +121,7 @@ model Cliente {
   actualizadoEn  DateTime      @updatedAt
   eliminadoEn    DateTime?
   prestamos      Prestamo[]
+  polizasSeguridad PolizaSeguridad[]
 
   @@index([nombre])
   @@index([cedula])
@@ -244,4 +246,86 @@ model PlantillaPrestamo {
   actualizadoEn DateTime       @updatedAt
 
   @@map("plantillas_prestamo")
+}
+
+// --- Módulo de Seguridad --------------------------------------------------
+// Un producto distinto al préstamo: cuota fija que se cobra cada período de
+// forma indefinida (como una póliza real) mientras esté activa. No hay
+// capital que se devuelve ni mora; solo se cancela cuando el cliente deja
+// de pagar la protección.
+
+enum EstadoPoliza {
+  ACTIVA
+  ATRASADA
+  CANCELADA
+}
+
+model PolizaSeguridad {
+  id            String         @id @default(cuid())
+  codigo        String         @unique
+  clienteId     String
+  cliente       Cliente        @relation(fields: [clienteId], references: [id])
+  montoCuota    Decimal        @db.Decimal(12, 2)
+  frecuencia    FrecuenciaPago @default(MENSUAL)
+  fechaInicio   DateTime
+  estado        EstadoPoliza   @default(ACTIVA)
+  notas         String?
+  creadoPorId   String?
+  cuotas        CuotaSeguridad[]
+  pagos         PagoSeguridad[]
+  creadoEn      DateTime       @default(now())
+  actualizadoEn DateTime       @updatedAt
+  eliminadoEn   DateTime?
+
+  @@index([clienteId])
+  @@index([estado])
+  @@map("polizas_seguridad")
+}
+
+model CuotaSeguridad {
+  id               String                   @id @default(cuid())
+  polizaId         String
+  poliza           PolizaSeguridad          @relation(fields: [polizaId], references: [id], onDelete: Cascade)
+  numero           Int
+  fechaVencimiento DateTime
+  montoCuota       Decimal                  @db.Decimal(12, 2)
+  montoPagado      Decimal                  @default(0) @db.Decimal(12, 2)
+  aplicaciones     PagoAplicacionSeguridad[]
+
+  @@unique([polizaId, numero])
+  @@index([fechaVencimiento])
+  @@map("cuotas_seguridad")
+}
+
+model PagoSeguridad {
+  id              String                   @id @default(cuid())
+  codigo          String                   @unique
+  polizaId        String
+  poliza          PolizaSeguridad          @relation(fields: [polizaId], references: [id])
+  monto           Decimal                  @db.Decimal(12, 2)
+  metodo          MetodoPago               @default(EFECTIVO)
+  fecha           DateTime                 @default(now())
+  anulado         Boolean                  @default(false)
+  motivoAnulacion String?
+  usuarioId       String?
+  usuario         Usuario?                 @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+  aplicaciones    PagoAplicacionSeguridad[]
+  creadoEn        DateTime                 @default(now())
+
+  @@index([polizaId])
+  @@index([fecha])
+  @@map("pagos_seguridad")
+}
+
+model PagoAplicacionSeguridad {
+  id       String         @id @default(cuid())
+  pagoId   String
+  pago     PagoSeguridad  @relation(fields: [pagoId], references: [id], onDelete: Cascade)
+  cuotaId  String
+  cuota    CuotaSeguridad @relation(fields: [cuotaId], references: [id])
+  monto    Decimal        @db.Decimal(12, 2)
+
+  @@index([cuotaId])
+  @@index([pagoId])
+  @@map("pago_aplicaciones_seguridad")
 }

@@ -87,6 +87,23 @@ frecuentes (monto, tasa, método, frecuencia, cuotas) con un nombre. Al crear un
 el selector "Usar una plantilla" las prellena — pero siguen siendo editables antes de guardar,
 así que la creación del préstamo se mantiene dinámica.
 
+## Módulo de Seguridad
+
+Un producto distinto al préstamo, pensado para pólizas/protecciones que se cobran de forma
+indefinida (como un seguro real): cuota fija cada semana/quincena/mes/etc., sin capital que se
+devuelve, sin mora, y sin fecha de fin — solo termina cuando se cancela.
+
+- Como no tiene un número de cuotas fijo, no se puede generar todo el cronograma de una vez.
+  En su lugar se mantiene un **horizonte de 12 cuotas** siempre generadas por delante de hoy
+  (`HORIZONTE_CUOTAS` en `src/lib/seguridad.ts`); cada vez que se abre la póliza o se le registra
+  un pago, se generan las cuotas que falten para mantener ese horizonte.
+- Los pagos se aplican a las cuotas pendientes más antiguas primero, sin ningún recargo por mora.
+- Tiene su propio código de cliente/pago (`SEG-####`, `PAGS-#####`), su propia pestaña en el
+  sidebar, su sección en la ficha de cada cliente, y su pestaña en Reportes (pólizas activas,
+  cobrado del mes, próximos vencimientos, export CSV).
+- Un cliente puede tener préstamos y pólizas de seguridad al mismo tiempo — son completamente
+  independientes entre sí.
+
 ## Cobros y mora
 
 - Un pago se aplica automáticamente a las cuotas pendientes empezando por la más antigua, en

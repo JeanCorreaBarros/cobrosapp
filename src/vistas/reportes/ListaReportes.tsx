@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Icono from "@/components/ui/Icono";
 import Boton from "@/components/ui/Boton";
-import { moneda } from "@/lib/formato";
+import { moneda, fecha } from "@/lib/formato";
 
 type Bucket = { clave: string; total: number; mora: number; cantidad: number };
 type Cartera = {
@@ -23,6 +23,22 @@ type FilaRentabilidad = {
   rentabilidad: number;
 };
 type Rentabilidad = { ranking: FilaRentabilidad[]; totales: { capitalPrestado: number; interesCobrado: number } };
+type ProximaSeguridad = {
+  poliza: string;
+  cliente: string;
+  cedula: string;
+  numero: number;
+  vence: string;
+  pendiente: number;
+};
+type Seguridad = {
+  polizasActivas: number;
+  polizasAtrasadas: number;
+  totalPendiente: number;
+  cobradoMes: number;
+  pagosMes: number;
+  proximas: ProximaSeguridad[];
+};
 
 const ETIQUETA_BUCKET: Record<string, string> = {
   AL_DIA: "Al día",
@@ -41,9 +57,10 @@ const COLOR_BUCKET: Record<string, string> = {
 };
 
 export default function ListaReportes() {
-  const [tab, setTab] = useState<"cartera" | "rentabilidad">("cartera");
+  const [tab, setTab] = useState<"cartera" | "rentabilidad" | "seguridad">("cartera");
   const [cartera, setCartera] = useState<Cartera | null>(null);
   const [rentabilidad, setRentabilidad] = useState<Rentabilidad | null>(null);
+  const [seguridad, setSeguridad] = useState<Seguridad | null>(null);
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
@@ -51,10 +68,12 @@ export default function ListaReportes() {
     Promise.all([
       fetch("/api/reportes/cartera").then((r) => r.json()),
       fetch("/api/reportes/rentabilidad").then((r) => r.json()),
+      fetch("/api/reportes/seguridad").then((r) => r.json()),
     ])
-      .then(([c, r]) => {
+      .then(([c, r, s]) => {
         setCartera(c);
         setRentabilidad(r);
+        setSeguridad(s);
       })
       .finally(() => setCargando(false));
   }, []);
@@ -65,7 +84,7 @@ export default function ListaReportes() {
     <div className="tarjeta space-y-6 p-5 sm:p-7">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-bold tracking-tight">Reportes</h1>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setTab("cartera")}
             className={`rounded-full px-4 py-2 text-sm font-medium transition ${
@@ -81,6 +100,14 @@ export default function ListaReportes() {
             }`}
           >
             Rentabilidad por cliente
+          </button>
+          <button
+            onClick={() => setTab("seguridad")}
+            className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+              tab === "seguridad" ? "bg-tinta text-white" : "bg-lienzo text-texto-2 hover:text-texto"
+            }`}
+          >
+            Seguridad
           </button>
         </div>
       </div>
@@ -174,6 +201,54 @@ export default function ListaReportes() {
               </tbody>
             </table>
           </div>
+        </div>
+      ) : tab === "seguridad" && seguridad ? (
+        <div className="space-y-6">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Metrica etiqueta="Pólizas activas" valor={String(seguridad.polizasActivas)} />
+            <Metrica etiqueta="Pólizas atrasadas" valor={String(seguridad.polizasAtrasadas)} />
+            <Metrica etiqueta="Cobrado este mes" valor={moneda(seguridad.cobradoMes)} />
+            <Metrica etiqueta="Pendiente generado" valor={moneda(seguridad.totalPendiente)} />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold">Próximos vencimientos</h2>
+            <a href="/api/reportes/seguridad?formato=csv">
+              <Boton variante="suave">
+                <Icono nombre="reportes" className="size-4" />
+                Exportar CSV
+              </Boton>
+            </a>
+          </div>
+
+          {seguridad.proximas.length === 0 ? (
+            <p className="py-10 text-center text-sm text-texto-2">
+              No hay cuotas de seguridad pendientes.
+            </p>
+          ) : (
+            <div className="overflow-x-auto scroll-fino">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs text-texto-3">
+                    <th className="px-3 py-2 font-medium">Cliente</th>
+                    <th className="px-3 py-2 font-medium">Póliza</th>
+                    <th className="px-3 py-2 font-medium">Vence</th>
+                    <th className="px-3 py-2 font-medium text-right">Pendiente</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {seguridad.proximas.slice(0, 15).map((p, i) => (
+                    <tr key={i} className="border-t border-borde">
+                      <td className="px-3 py-2.5 font-medium">{p.cliente}</td>
+                      <td className="px-3 py-2.5 text-texto-2">{p.poliza}</td>
+                      <td className="px-3 py-2.5">{fecha(p.vence)}</td>
+                      <td className="px-3 py-2.5 text-right">{moneda(p.pendiente)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       ) : null}
     </div>
