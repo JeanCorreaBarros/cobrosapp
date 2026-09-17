@@ -169,10 +169,20 @@ src/lib/whatsapp.ts              Enlaces wa.me para recordatorios
 src/components/pestanas         Sistema de pestañas (contexto, barra, área de trabajo)
 src/vistas                      Contenido de cada sección
 src/components/ui               Primitivas de UI
-middleware.ts                   Protección de rutas
-Dockerfile / docker-compose.yml         Desarrollo
-Dockerfile.prod / docker-compose.prod.yml  Producción (build optimizado)
+src/middleware.ts                Protección de rutas + CSP (debe vivir bajo src/, no en la raíz)
+Dockerfile                       Producción de un solo contenedor (PaaS: EasyPanel, Dokploy, Coolify...)
+Dockerfile.dev / docker-compose.yml       Desarrollo local
+Dockerfile.prod / docker-compose.prod.yml  Producción en VPS con docker compose (build optimizado)
 ```
+
+### ¿Cuál Dockerfile uso?
+
+- **Despliegas en EasyPanel, Dokploy, Coolify o similar** (un servicio = un contenedor, sin
+  paso de migración aparte): usa `Dockerfile` — es el que el panel toma por defecto, no hay que
+  configurar nada. Corre la migración y el seed al arrancar y luego `next start`.
+- **Despliegas en un VPS con `docker compose` tú mismo**: usa `docker-compose.prod.yml`, que ya
+  apunta a `Dockerfile.prod` (build más liviano, con un contenedor `migrate` aparte).
+- **Desarrollo local**: `docker compose up` ya usa `Dockerfile.dev` automáticamente.
 
 ## Estado por fases
 
