@@ -4,11 +4,13 @@ import { useState } from "react";
 import PanelEmpresa from "./configuracion/PanelEmpresa";
 import PanelUsuarios from "./configuracion/PanelUsuarios";
 import PanelZonas from "./configuracion/PanelZonas";
+import PanelPlantillas from "./configuracion/PanelPlantillas";
 import PanelAuditoria from "./configuracion/PanelAuditoria";
 import PanelRespaldo from "./configuracion/PanelRespaldo";
 
 const TABS = [
   { valor: "empresa", etiqueta: "Empresa y préstamos" },
+  { valor: "plantillas", etiqueta: "Plantillas" },
   { valor: "usuarios", etiqueta: "Usuarios" },
   { valor: "zonas", etiqueta: "Zonas" },
   { valor: "auditoria", etiqueta: "Auditoría" },
@@ -37,6 +39,7 @@ export default function VistaConfiguracion() {
       </div>
 
       {tab === "empresa" && <PanelEmpresa />}
+      {tab === "plantillas" && <PanelPlantillas />}
       {tab === "usuarios" && <PanelUsuarios />}
       {tab === "zonas" && <PanelZonas />}
       {tab === "auditoria" && <PanelAuditoria />}

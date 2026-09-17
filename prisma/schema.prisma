@@ -228,3 +228,20 @@ model PagoAplicacion {
   @@index([pagoId])
   @@map("pago_aplicaciones")
 }
+
+// Preset seleccionable al crear un préstamo nuevo; no queda vinculada al
+// préstamo creado a partir de ella, solo agiliza rellenar el formulario.
+model PlantillaPrestamo {
+  id            String         @id @default(cuid())
+  nombre        String
+  montoCapital  Decimal        @db.Decimal(12, 2)
+  tasaInteres   Decimal        @db.Decimal(6, 2)
+  tipoInteres   TipoInteres    @default(SIMPLE)
+  frecuencia    FrecuenciaPago @default(SEMANAL)
+  plazoCuotas   Int
+  activa        Boolean        @default(true)
+  creadoEn      DateTime       @default(now())
+  actualizadoEn DateTime       @updatedAt
+
+  @@map("plantillas_prestamo")
+}

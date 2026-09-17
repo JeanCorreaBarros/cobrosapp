@@ -75,6 +75,18 @@ vista previa en vivo del total a pagar y la cuota antes de guardar. La lógica v
 `src/lib/amortizacion.ts`, sin dependencias de servidor, así que se reutiliza igual en la
 vista previa del formulario que en la API.
 
+**Interés en % o en $ fijo**: con interés simple, puedes escribir la tasa como porcentaje o,
+alternando a "Definir en $ fijo", escribir directamente el interés total en pesos (ej. "$1.000
+de interés" en vez de "10%"). Internamente se convierte a la tasa equivalente antes de calcular
+el cronograma — mismo motor, no es un método nuevo. Con interés sobre saldo esta opción no
+aplica (la tasa se aplica período a período, no como monto total de una vez) y el formulario
+vuelve a modo porcentaje automáticamente si cambias de método.
+
+**Plantillas de préstamo**: en Configuración → Plantillas, un ADMIN puede guardar combinaciones
+frecuentes (monto, tasa, método, frecuencia, cuotas) con un nombre. Al crear un préstamo nuevo,
+el selector "Usar una plantilla" las prellena — pero siguen siendo editables antes de guardar,
+así que la creación del préstamo se mantiene dinámica.
+
 ## Cobros y mora
 
 - Un pago se aplica automáticamente a las cuotas pendientes empezando por la más antigua, en
