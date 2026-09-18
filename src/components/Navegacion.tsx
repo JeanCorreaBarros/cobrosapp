@@ -23,7 +23,7 @@ const PRINCIPALES: Enlace[] = [
 ];
 
 const SECUNDARIOS: Enlace[] = [
-  { href: "/seguridad", etiqueta: "Seguridad", icono: "candado" },
+  { href: "/seguridad", etiqueta: "Pólizas", icono: "candado" },
   { href: "/agenda", etiqueta: "Agenda", icono: "agenda" },
   { href: "/reportes", etiqueta: "Reportes", icono: "reportes" },
   { href: "/configuracion", etiqueta: "Configuración", icono: "config", roles: ["ADMIN"] },

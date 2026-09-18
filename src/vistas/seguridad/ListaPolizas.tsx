@@ -10,7 +10,13 @@ import { usePestanas } from "@/components/pestanas/ContextoPestanas";
 import { useSesion } from "@/lib/sesion-cliente";
 import { moneda, fecha } from "@/lib/formato";
 import { ETIQUETA_FRECUENCIA } from "@/lib/amortizacion";
+import { finDeAnioPoliza } from "@/lib/seguridad";
 import type { PolizaSeguridad } from "@/lib/tipos";
+
+function diasParaFinAnio(fechaInicio: string) {
+  const finAnio = finDeAnioPoliza(new Date(fechaInicio));
+  return Math.ceil((finAnio.getTime() - Date.now()) / 86_400_000);
+}
 
 const TONO_ESTADO: Record<PolizaSeguridad["estado"], "menta" | "rosa" | "durazno" | "neutro"> = {
   ACTIVA: "menta",
@@ -88,7 +94,7 @@ export default function ListaPolizas() {
     <div className="tarjeta space-y-6 p-5 sm:p-7">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Seguridad</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Pólizas</h1>
           <p className="text-sm text-texto-2">{total} pólizas registradas</p>
         </div>
         {sesion.rol !== "CONSULTA" && (
@@ -169,6 +175,11 @@ export default function ListaPolizas() {
                       <span className="block font-semibold">{moneda(Number(poliza.montoCuota))}</span>
                       <span className="block text-xs text-texto-3">por cuota</span>
                     </span>
+                    {poliza.estado !== "CANCELADA" && diasParaFinAnio(poliza.fechaInicio) <= 30 && (
+                      <Pildora tono="durazno">
+                        {diasParaFinAnio(poliza.fechaInicio) < 0 ? "Vencida" : "Vence pronto"}
+                      </Pildora>
+                    )}
                     <Pildora tono={TONO_ESTADO[poliza.estado]}>
                       {ETIQUETA_ESTADO[poliza.estado]}
                     </Pildora>
@@ -207,7 +218,7 @@ export default function ListaPolizas() {
 
       {modalAbierto && (
         <Modal titulo="Nueva póliza de seguridad" onCerrar={() => setModalAbierto(false)} ancho="max-w-2xl">
-          <FormularioPoliza onCrear={crearPoliza} onCancelar={() => setModalAbierto(false)} />
+          <FormularioPoliza onGuardar={crearPoliza} onCancelar={() => setModalAbierto(false)} />
         </Modal>
       )}
     </div>

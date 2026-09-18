@@ -22,6 +22,7 @@ const RUTAS = {
   upload: "M12 16V4M7 9l5-5 5 5M4 20h16",
   descargar: "M12 4v12M7 11l5 5 5-5M4 20h16",
   flecha: "M5 12h14M13 6l6 6-6 6",
+  editar: "M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5M18.4 2.6a2 2 0 0 1 2.8 2.8L11 15.6l-4 1 1-4z",
 } as const;
 
 export default function Icono({ nombre, className = "size-5" }: Props) {

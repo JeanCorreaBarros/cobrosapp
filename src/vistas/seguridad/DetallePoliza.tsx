@@ -6,11 +6,13 @@ import Pildora from "@/components/ui/Pildora";
 import Boton from "@/components/ui/Boton";
 import Modal from "@/components/ui/Modal";
 import FormularioPagoSeguridad from "./FormularioPagoSeguridad";
+import FormularioPoliza, { type ValoresPoliza } from "./FormularioPoliza";
 import { usePestanas } from "@/components/pestanas/ContextoPestanas";
 import { useSesion } from "@/lib/sesion-cliente";
 import { moneda, fecha } from "@/lib/formato";
 import { ETIQUETA_FRECUENCIA } from "@/lib/amortizacion";
 import { ETIQUETA_METODO_PAGO } from "@/lib/pagos";
+import { finDeAnioPoliza } from "@/lib/seguridad";
 import type { PagoSeguridad, PolizaSeguridad } from "@/lib/tipos";
 
 const TONO_ESTADO: Record<PolizaSeguridad["estado"], "menta" | "rosa" | "durazno" | "neutro"> = {
@@ -35,13 +37,17 @@ function estadoCuota(fechaVencimiento: string, montoCuota: string, montoPagado: 
 
 export default function DetallePoliza({ id }: { id: string }) {
   const sesion = useSesion();
-  const { abrir } = usePestanas();
+  const { abrir, cerrar } = usePestanas();
   const [poliza, setPoliza] = useState<PolizaSeguridad | null>(null);
   const [pagos, setPagos] = useState<PagoSeguridad[]>([]);
   const [cargando, setCargando] = useState(true);
   const [noEncontrado, setNoEncontrado] = useState(false);
   const [confirmarCancelar, setConfirmarCancelar] = useState(false);
   const [nuevoPago, setNuevoPago] = useState(false);
+  const [editando, setEditando] = useState(false);
+  const [eliminando, setEliminando] = useState(false);
+  const [motivoEliminacion, setMotivoEliminacion] = useState("");
+  const [errorEliminacion, setErrorEliminacion] = useState<string | null>(null);
   const [anulando, setAnulando] = useState<PagoSeguridad | null>(null);
   const [motivoAnulacion, setMotivoAnulacion] = useState("");
   const [errorAnulacion, setErrorAnulacion] = useState<string | null>(null);
@@ -82,6 +88,43 @@ export default function DetallePoliza({ id }: { id: string }) {
       setConfirmarCancelar(false);
       await cargar();
     }
+  }
+
+  async function guardarEdicion(valores: ValoresPoliza): Promise<string | null> {
+    const respuesta = await fetch(`/api/polizas/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        montoCuota: valores.montoCuota,
+        frecuencia: valores.frecuencia,
+        fechaInicio: valores.fechaInicio,
+        notas: valores.notas,
+      }),
+    });
+    const datos = await respuesta.json();
+    if (!respuesta.ok) return datos.error ?? "No se pudo guardar la póliza";
+
+    setEditando(false);
+    await cargar();
+    return null;
+  }
+
+  async function eliminarPoliza() {
+    if (motivoEliminacion.trim().length < 3) {
+      setErrorEliminacion("Escribe un motivo de al menos 3 caracteres");
+      return;
+    }
+    const respuesta = await fetch(`/api/polizas/${id}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ motivo: motivoEliminacion }),
+    });
+    const datos = await respuesta.json();
+    if (!respuesta.ok) {
+      setErrorEliminacion(datos.error ?? "No se pudo eliminar la póliza");
+      return;
+    }
+    cerrar(`/seguridad/${id}`);
   }
 
   async function registrarPago(valores: {
@@ -148,6 +191,12 @@ export default function DetallePoliza({ id }: { id: string }) {
     poliza.cuotas?.reduce((acc, c) => acc + (Number(c.montoCuota) - Number(c.montoPagado)), 0) ?? 0;
   const puedeGestionar = sesion.rol === "ADMIN" && poliza.estado !== "CANCELADA";
 
+  const finAnio = finDeAnioPoliza(new Date(poliza.fechaInicio));
+  const diasParaFinAnio = Math.ceil((finAnio.getTime() - Date.now()) / 86_400_000);
+  const anioSiguiente = finAnio.getFullYear() + 1;
+  const mostrarAvisoRenovacion =
+    poliza.estado !== "CANCELADA" && diasParaFinAnio <= 30;
+
   return (
     <div className="space-y-4">
       <div className="tarjeta p-5 sm:p-7">
@@ -172,9 +221,21 @@ export default function DetallePoliza({ id }: { id: string }) {
                 Registrar pago
               </Boton>
             )}
+            {sesion.rol !== "CONSULTA" && poliza.estado !== "CANCELADA" && (
+              <Boton variante="suave" onClick={() => setEditando(true)}>
+                <Icono nombre="editar" className="size-4" />
+                Editar
+              </Boton>
+            )}
             {puedeGestionar && (
               <Boton variante="fantasma" onClick={() => setConfirmarCancelar(true)}>
                 Cancelar póliza
+              </Boton>
+            )}
+            {sesion.rol === "ADMIN" && (
+              <Boton variante="fantasma" onClick={() => setEliminando(true)}>
+                <Icono nombre="cerrar" className="size-4" />
+                Eliminar
               </Boton>
             )}
           </div>
@@ -194,9 +255,33 @@ export default function DetallePoliza({ id }: { id: string }) {
           </div>
         )}
 
+        {mostrarAvisoRenovacion && (
+          <div className="mt-4 flex items-start gap-3 rounded-2xl bg-durazno/60 p-4">
+            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-superficie text-durazno-ink">
+              <Icono nombre="campana" className="size-4" />
+            </span>
+            <p className="text-sm text-texto">
+              {diasParaFinAnio < 0 ? (
+                <>
+                  Esta póliza cubrió hasta el <strong>{fecha(finAnio)}</strong> y ya no genera cuotas
+                  nuevas. Registra una <strong>póliza nueva para {anioSiguiente}</strong> para
+                  continuar el cobro a este cliente.
+                </>
+              ) : (
+                <>
+                  Esta póliza cubre solo hasta el <strong>{fecha(finAnio)}</strong> (
+                  {diasParaFinAnio} {diasParaFinAnio === 1 ? "día" : "días"} restantes). Cuando
+                  termine el año, registra una <strong>póliza nueva para {anioSiguiente}</strong>.
+                </>
+              )}
+            </p>
+          </div>
+        )}
+
         <p className="mt-4 text-xs text-texto-3">
-          Esta póliza no vence: se generan cuotas nuevas automáticamente mientras esté activa. No
-          aplica mora si una cuota se atrasa.
+          Esta póliza cubre un año calendario, desde su inicio hasta el 31 de diciembre de{" "}
+          {finAnio.getFullYear()}: las cuotas de ese periodo se generan automáticamente. No aplica
+          mora si una cuota se atrasa.
         </p>
       </div>
 
@@ -206,9 +291,9 @@ export default function DetallePoliza({ id }: { id: string }) {
           <span className="text-xs text-texto-3">{poliza.cuotas?.length ?? 0} generadas</span>
         </div>
 
-        <div className="overflow-x-auto scroll-fino">
+        <div className="max-h-96 overflow-y-auto overflow-x-auto scroll-fino">
           <table className="w-full text-sm">
-            <thead>
+            <thead className="sticky top-0 bg-superficie">
               <tr className="text-left text-xs text-texto-3">
                 <th className="px-3 py-2 font-medium">#</th>
                 <th className="px-3 py-2 font-medium">Vence</th>
@@ -293,6 +378,66 @@ export default function DetallePoliza({ id }: { id: string }) {
             onRegistrar={registrarPago}
             onCancelar={() => setNuevoPago(false)}
           />
+        </Modal>
+      )}
+
+      {editando && (
+        <Modal titulo="Editar póliza" onCerrar={() => setEditando(false)} ancho="max-w-2xl">
+          <FormularioPoliza
+            valoresIniciales={{
+              clienteId: poliza.clienteId,
+              montoCuota: Number(poliza.montoCuota),
+              frecuencia: poliza.frecuencia,
+              fechaInicio: poliza.fechaInicio.slice(0, 10),
+              notas: poliza.notas ?? "",
+              cliente: { id: poliza.clienteId, nombre: poliza.cliente.nombre },
+            }}
+            textoBoton="Guardar cambios"
+            onGuardar={guardarEdicion}
+            onCancelar={() => setEditando(false)}
+          />
+        </Modal>
+      )}
+
+      {eliminando && (
+        <Modal
+          titulo="Eliminar póliza"
+          onCerrar={() => {
+            setEliminando(false);
+            setMotivoEliminacion("");
+            setErrorEliminacion(null);
+          }}
+        >
+          <p className="mb-4 text-sm text-texto-2">
+            Vas a eliminar la póliza{" "}
+            <strong className="font-semibold text-texto">{poliza.codigo}</strong>. Esta acción no se
+            puede deshacer y quedará registrada en la auditoría con el motivo y la fecha.
+          </p>
+          <label className="mb-1.5 block text-sm font-medium text-texto-2">Motivo de la eliminación</label>
+          <textarea
+            value={motivoEliminacion}
+            onChange={(e) => {
+              setMotivoEliminacion(e.target.value);
+              setErrorEliminacion(null);
+            }}
+            rows={2}
+            className="w-full resize-none rounded-2xl border border-borde bg-superficie px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-tinta/15"
+            placeholder="Ej: se creó por error, cliente canceló, duplicada, etc."
+          />
+          {errorEliminacion && <p className="mt-2 text-sm text-rosa-ink">{errorEliminacion}</p>}
+          <div className="mt-6 flex justify-end gap-3">
+            <Boton
+              variante="suave"
+              onClick={() => {
+                setEliminando(false);
+                setMotivoEliminacion("");
+                setErrorEliminacion(null);
+              }}
+            >
+              Volver
+            </Boton>
+            <Boton onClick={eliminarPoliza}>Eliminar póliza</Boton>
+          </div>
         </Modal>
       )}
 

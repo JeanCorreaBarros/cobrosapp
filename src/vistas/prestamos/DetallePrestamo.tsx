@@ -232,9 +232,9 @@ export default function DetallePrestamo({ id }: { id: string }) {
           <span className="text-xs text-texto-3">{prestamo.plazoCuotas} cuotas</span>
         </div>
 
-        <div className="overflow-x-auto scroll-fino">
+        <div className="max-h-96 overflow-y-auto overflow-x-auto scroll-fino">
           <table className="w-full text-sm">
-            <thead>
+            <thead className="sticky top-0 bg-superficie">
               <tr className="text-left text-xs text-texto-3">
                 <th className="px-3 py-2 font-medium">#</th>
                 <th className="px-3 py-2 font-medium">Vence</th>

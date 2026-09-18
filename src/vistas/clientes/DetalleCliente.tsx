@@ -411,7 +411,7 @@ export default function DetalleCliente({ id }: { id: string }) {
               cedula: cliente.cedula,
               telefono: cliente.telefono,
             }}
-            onCrear={crearPoliza}
+            onGuardar={crearPoliza}
             onCancelar={() => setNuevaPoliza(false)}
           />
         </Modal>

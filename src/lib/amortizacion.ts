@@ -21,20 +21,26 @@ function redondear(valor: number) {
   return Math.round(valor * 100) / 100;
 }
 
+// Usa siempre los métodos UTC (nunca setDate/setMonth locales): estas fechas
+// son de calendario, no momentos exactos, y esta función corre tanto en el
+// servidor como en el navegador de quien la usa. Con aritmética local, el
+// mismo cálculo da resultados distintos según la zona horaria de quien lo
+// ejecute (p. ej. la vista previa en el navegador vs. el guardado real en
+// el servidor), lo que puede desalinear el día por una zona horaria negativa.
 export function sumarPeriodo(fecha: Date, frecuencia: FrecuenciaPago, periodos: number) {
   const resultado = new Date(fecha);
   switch (frecuencia) {
     case "DIARIO":
-      resultado.setDate(resultado.getDate() + periodos);
+      resultado.setUTCDate(resultado.getUTCDate() + periodos);
       break;
     case "SEMANAL":
-      resultado.setDate(resultado.getDate() + periodos * 7);
+      resultado.setUTCDate(resultado.getUTCDate() + periodos * 7);
       break;
     case "QUINCENAL":
-      resultado.setDate(resultado.getDate() + periodos * 15);
+      resultado.setUTCDate(resultado.getUTCDate() + periodos * 15);
       break;
     case "MENSUAL":
-      resultado.setMonth(resultado.getMonth() + periodos);
+      resultado.setUTCMonth(resultado.getUTCMonth() + periodos);
       break;
   }
   return resultado;

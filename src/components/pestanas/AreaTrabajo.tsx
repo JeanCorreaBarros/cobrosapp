@@ -9,6 +9,7 @@ import VistaAgenda from "@/vistas/Agenda";
 import VistaReportes from "@/vistas/Reportes";
 import VistaConfiguracion from "@/vistas/Configuracion";
 import BarraPestanas from "./BarraPestanas";
+import NotificacionesCampana from "@/components/NotificacionesCampana";
 import { usePestanas } from "./ContextoPestanas";
 
 const VISTAS: Record<string, React.ComponentType<{ parametro?: string | null }>> = {
@@ -34,7 +35,12 @@ export default function AreaTrabajo() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <BarraPestanas />
+      <div className="flex items-center gap-2">
+        <div className="min-w-0 flex-1">
+          <BarraPestanas />
+        </div>
+        <NotificacionesCampana />
+      </div>
 
       <div className="min-h-0 flex-1">
         {pestanas.map((pestana) => {

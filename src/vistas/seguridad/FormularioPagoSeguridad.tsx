@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Campo from "@/components/ui/Campo";
+import CampoMoneda from "@/components/ui/CampoMoneda";
 import Selector from "@/components/ui/Selector";
 import Boton from "@/components/ui/Boton";
 import Icono from "@/components/ui/Icono";
@@ -138,15 +139,12 @@ export default function FormularioPagoSeguridad({
       )}
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Campo
+        <CampoMoneda
           etiqueta="Monto a pagar"
           name="monto"
-          type="number"
-          min="1"
-          step="0.01"
           value={monto}
-          onChange={(e) => {
-            setMonto(e.target.value);
+          onChange={(valor) => {
+            setMonto(valor);
             setError(null);
           }}
         />

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requerirSesion, esSesion } from "@/lib/api";
 import { calcularMoraCuota } from "@/lib/pagos";
+import { obtenerCobrosHoy } from "@/lib/cobrosHoy";
 
 export async function GET() {
   const sesion = await requerirSesion();
@@ -9,15 +10,13 @@ export async function GET() {
 
   const hoy = new Date();
   const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-  const finHoy = new Date(hoy);
-  finHoy.setHours(23, 59, 59, 999);
   const inicioHoy = new Date(hoy);
   inicioHoy.setHours(0, 0, 0, 0);
 
   const config = await prisma.configuracion.findUnique({ where: { id: "default" } });
   const moraPorcentaje = Number(config?.moraPorcentaje ?? 2);
 
-  const [cuotasPendientes, pagosDelMes, cuotasHoy, clientesActivos, prestamosActivos] =
+  const [cuotasPendientes, pagosDelMes, cuotasHoyTodas, clientesActivos, prestamosActivos] =
     await Promise.all([
       prisma.cuota.findMany({
         where: { prestamo: { eliminadoEn: null, estado: { in: ["ACTIVO", "ATRASADO"] } } },
@@ -27,18 +26,7 @@ export async function GET() {
         where: { anulado: false, fecha: { gte: inicioMes } },
         include: { aplicaciones: true },
       }),
-      prisma.cuota.findMany({
-        where: {
-          fechaVencimiento: { lte: finHoy },
-          prestamo: { eliminadoEn: null, estado: { in: ["ACTIVO", "ATRASADO"] } },
-        },
-        include: {
-          prestamo: {
-            select: { id: true, codigo: true, cliente: { select: { nombre: true } } },
-          },
-        },
-        orderBy: { fechaVencimiento: "asc" },
-      }),
+      obtenerCobrosHoy(),
       prisma.cliente.count({ where: { eliminadoEn: null, estado: "ACTIVO" } }),
       prisma.prestamo.count({ where: { eliminadoEn: null, estado: { in: ["ACTIVO", "ATRASADO"] } } }),
     ]);
@@ -76,18 +64,6 @@ export async function GET() {
     0,
   );
 
-  const cuotasHoyPendientes = cuotasHoy
-    .filter((c) => Number(c.montoPagado) < Number(c.montoCuota) - 0.009)
-    .slice(0, 6)
-    .map((c) => ({
-      cuotaId: c.id,
-      prestamoId: c.prestamo.id,
-      codigo: c.prestamo.codigo,
-      cliente: c.prestamo.cliente.nombre,
-      monto: Number(c.montoCuota) - Number(c.montoPagado),
-      atrasada: new Date(c.fechaVencimiento) < inicioHoy,
-    }));
-
   return NextResponse.json({
     porCobrar,
     cobradoMes,
@@ -95,7 +71,7 @@ export async function GET() {
     gananciaMes,
     clientesActivos,
     prestamosActivos,
-    cobrosHoyTotal: cuotasHoy.filter((c) => Number(c.montoPagado) < Number(c.montoCuota) - 0.009).length,
-    cuotasHoy: cuotasHoyPendientes,
+    cobrosHoyTotal: cuotasHoyTodas.length,
+    cuotasHoy: cuotasHoyTodas.slice(0, 6),
   });
 }

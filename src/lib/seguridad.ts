@@ -1,14 +1,16 @@
 import { sumarPeriodo, type FrecuenciaPago } from "@/lib/amortizacion";
 
-// Una póliza de seguridad es indefinida: no tiene un número de cuotas fijo
-// como un préstamo, así que no se pueden generar todas de una vez. En vez
-// de eso, siempre se mantiene un "horizonte" de cuotas futuras generadas
-// (HORIZONTE períodos por delante de hoy) y se completan más cada vez que
-// se consulta la póliza o se le registra un pago.
-export const HORIZONTE_CUOTAS = 12;
-
 function redondear(valor: number) {
   return Math.round(valor * 100) / 100;
+}
+
+/** Una póliza cubre un solo año calendario: desde su fecha de inicio hasta
+ *  el 31 de diciembre del año en que arranca (si empieza hoy, hasta fin de
+ *  este año; si se registra desde enero del año siguiente, hasta diciembre
+ *  de ese año siguiente). Al llegar esa fecha no se generan más cuotas: hay
+ *  que registrar una póliza nueva para el año que sigue. */
+export function finDeAnioPoliza(fechaInicio: Date): Date {
+  return new Date(Date.UTC(fechaInicio.getUTCFullYear(), 11, 31, 23, 59, 59, 999));
 }
 
 export type CuotaSeguridadExistente = {
@@ -22,30 +24,30 @@ export type CuotaSeguridadNueva = {
   montoCuota: number;
 };
 
-/** Calcula qué cuotas nuevas hay que crear para que siempre haya al menos
- *  HORIZONTE_CUOTAS cuotas vigentes (hoy o en el futuro) generadas. */
+/** Calcula las cuotas que faltan crear para cubrir todo el año de la
+ *  póliza (no un número fijo de meses: una póliza semanal necesita muchas
+ *  más cuotas que una mensual para llegar al 31 de diciembre). Una vez el
+ *  año está completo, deja de generar cuotas nuevas aunque se siga
+ *  consultando la póliza. */
 export function calcularCuotasFaltantes(
   fechaInicio: Date,
   frecuencia: FrecuenciaPago,
   montoCuota: number,
   cuotasExistentes: CuotaSeguridadExistente[],
-  hoy: Date = new Date(),
 ): CuotaSeguridadNueva[] {
+  const finAnio = finDeAnioPoliza(fechaInicio);
   const ultimoNumero = cuotasExistentes.reduce((max, c) => Math.max(max, c.numero), 0);
-  const vigentes = cuotasExistentes.filter((c) => new Date(c.fechaVencimiento) >= hoy).length;
 
   const nuevas: CuotaSeguridadNueva[] = [];
   let numero = ultimoNumero;
-  let faltan = Math.max(HORIZONTE_CUOTAS - vigentes, 0);
 
-  while (faltan > 0) {
+  // Tope de seguridad para no generar cuotas infinitas si la frecuencia y
+  // la fecha de inicio produjeran un cálculo inesperado.
+  for (let i = 0; i < 400; i++) {
+    const siguiente = sumarPeriodo(fechaInicio, frecuencia, numero + 1);
+    if (siguiente > finAnio) break;
     numero += 1;
-    nuevas.push({
-      numero,
-      fechaVencimiento: sumarPeriodo(fechaInicio, frecuencia, numero),
-      montoCuota: redondear(montoCuota),
-    });
-    faltan -= 1;
+    nuevas.push({ numero, fechaVencimiento: siguiente, montoCuota: redondear(montoCuota) });
   }
 
   return nuevas;

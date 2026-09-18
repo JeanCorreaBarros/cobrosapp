@@ -25,7 +25,8 @@ type DatosDashboard = {
   cobrosHoyTotal: number;
   cuotasHoy: {
     cuotaId: string;
-    prestamoId: string;
+    tipo: "prestamo" | "seguridad";
+    ruta: string;
     codigo: string;
     cliente: string;
     monto: number;
@@ -55,12 +56,6 @@ export default function VistaDashboard() {
         </div>
         <div className="flex items-center gap-2">
           <BuscadorGlobal />
-          <button
-            aria-label="Notificaciones"
-            className="grid size-11 place-items-center rounded-full bg-lienzo text-texto-2 transition hover:text-texto"
-          >
-            <Icono nombre="campana" className="size-4.5" />
-          </button>
           <button
             aria-label="Mensajes"
             className="grid size-11 place-items-center rounded-full bg-lienzo text-texto-2 transition hover:text-texto"
@@ -133,11 +128,11 @@ export default function VistaDashboard() {
                   {datos.cuotasHoy.map((c) => (
                     <li key={c.cuotaId}>
                       <button
-                        onClick={() => abrir(`/prestamos/${c.prestamoId}`)}
+                        onClick={() => abrir(c.ruta)}
                         className="flex w-full items-center gap-3 rounded-2xl bg-lienzo/70 px-4 py-3 text-left transition hover:bg-lienzo"
                       >
                         <span className="grid size-10 shrink-0 place-items-center rounded-full bg-superficie text-texto-2">
-                          <Icono nombre="usuario" className="size-4.5" />
+                          <Icono nombre={c.tipo === "seguridad" ? "candado" : "usuario"} className="size-4.5" />
                         </span>
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-semibold">{c.cliente}</p>

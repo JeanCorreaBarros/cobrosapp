@@ -276,6 +276,7 @@ model PolizaSeguridad {
   creadoEn      DateTime       @default(now())
   actualizadoEn DateTime       @updatedAt
   eliminadoEn   DateTime?
+  motivoEliminacion String?
 
   @@index([clienteId])
   @@index([estado])

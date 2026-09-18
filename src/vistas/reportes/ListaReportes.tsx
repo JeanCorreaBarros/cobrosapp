@@ -107,7 +107,7 @@ export default function ListaReportes() {
               tab === "seguridad" ? "bg-tinta text-white" : "bg-lienzo text-texto-2 hover:text-texto"
             }`}
           >
-            Seguridad
+            Pólizas
           </button>
         </div>
       </div>
@@ -172,9 +172,9 @@ export default function ListaReportes() {
             </a>
           </div>
 
-          <div className="overflow-x-auto scroll-fino">
+          <div className="max-h-96 overflow-y-auto overflow-x-auto scroll-fino">
             <table className="w-full text-sm">
-              <thead>
+              <thead className="sticky top-0 bg-superficie">
                 <tr className="text-left text-xs text-texto-3">
                   <th className="px-3 py-2 font-medium">Cliente</th>
                   <th className="px-3 py-2 font-medium text-right">Préstamos</th>
@@ -226,9 +226,9 @@ export default function ListaReportes() {
               No hay cuotas de seguridad pendientes.
             </p>
           ) : (
-            <div className="overflow-x-auto scroll-fino">
+            <div className="max-h-96 overflow-y-auto overflow-x-auto scroll-fino">
               <table className="w-full text-sm">
-                <thead>
+                <thead className="sticky top-0 bg-superficie">
                   <tr className="text-left text-xs text-texto-3">
                     <th className="px-3 py-2 font-medium">Cliente</th>
                     <th className="px-3 py-2 font-medium">Póliza</th>
