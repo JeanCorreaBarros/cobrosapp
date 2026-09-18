@@ -7,7 +7,7 @@ import BuscadorGlobal from "@/components/BuscadorGlobal";
 import Icono from "@/components/ui/Icono";
 import Pildora from "@/components/ui/Pildora";
 import { Tarjeta, TarjetaOscura } from "@/components/ui/Tarjeta";
-import { moneda } from "@/lib/formato";
+import { moneda, fecha } from "@/lib/formato";
 
 const TONOS_KPI = {
   lila: "bg-lila text-lila-ink",
@@ -32,6 +32,22 @@ type DatosDashboard = {
     monto: number;
     atrasada: boolean;
   }[];
+  polizas: {
+    activas: number;
+    atrasadas: number;
+    porCobrar: number;
+    cobradoMes: number;
+    cuotasPendientesTotal: number;
+    proximas: {
+      cuotaId: string;
+      ruta: string;
+      codigo: string;
+      cliente: string;
+      monto: number;
+      fechaVencimiento: string;
+      atrasada: boolean;
+    }[];
+  };
 };
 
 export default function VistaDashboard() {
@@ -167,6 +183,85 @@ export default function VistaDashboard() {
               </div>
             </TarjetaOscura>
           </div>
+
+          <div className="grid gap-4 lg:grid-cols-3">
+            <Tarjeta className="border border-borde shadow-none">
+              <div className="flex items-start justify-between">
+                <span className="grid size-11 place-items-center rounded-full bg-lila text-lila-ink">
+                  <Icono nombre="candado" className="size-5" />
+                </span>
+              </div>
+              <p className="mt-5 text-2xl font-bold tracking-tight">{moneda(datos.polizas.porCobrar)}</p>
+              <p className="mt-1 text-sm text-texto-2">Por cobrar de pólizas</p>
+              <p className="mt-3 text-xs text-texto-3">
+                {datos.polizas.cuotasPendientesTotal} cuotas pendientes
+              </p>
+            </Tarjeta>
+
+            <Tarjeta className="border border-borde shadow-none">
+              <div className="flex items-start justify-between">
+                <span className="grid size-11 place-items-center rounded-full bg-menta text-menta-ink">
+                  <Icono nombre="reportes" className="size-5" />
+                </span>
+              </div>
+              <p className="mt-5 text-2xl font-bold tracking-tight">{moneda(datos.polizas.cobradoMes)}</p>
+              <p className="mt-1 text-sm text-texto-2">Cobrado este mes (pólizas)</p>
+              <p className="mt-3 text-xs text-texto-3">{datos.polizas.activas} pólizas activas</p>
+            </Tarjeta>
+
+            <Tarjeta className="border border-borde shadow-none">
+              <div className="flex items-start justify-between">
+                <span className="grid size-11 place-items-center rounded-full bg-rosa text-rosa-ink">
+                  <Icono nombre="agenda" className="size-5" />
+                </span>
+              </div>
+              <p className="mt-5 text-2xl font-bold tracking-tight">{datos.polizas.atrasadas}</p>
+              <p className="mt-1 text-sm text-texto-2">Pólizas atrasadas</p>
+              <p className="mt-3 text-xs text-texto-3">Con al menos una cuota vencida sin pagar</p>
+            </Tarjeta>
+          </div>
+
+          <Tarjeta className="border border-borde shadow-none">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="font-semibold">Próximos cobros de pólizas</h2>
+                <p className="text-sm text-texto-2">Cuotas pendientes, de la más antigua a la más próxima</p>
+              </div>
+              <Pildora tono="cielo">{datos.polizas.cuotasPendientesTotal} pendientes</Pildora>
+            </div>
+            {datos.polizas.proximas.length === 0 ? (
+              <p className="mt-5 py-6 text-center text-sm text-texto-2">
+                No hay cuotas de pólizas pendientes.
+              </p>
+            ) : (
+              <ul className="mt-5 space-y-3">
+                {datos.polizas.proximas.map((p) => (
+                  <li key={p.cuotaId}>
+                    <button
+                      onClick={() => abrir(p.ruta)}
+                      className="flex w-full items-center gap-3 rounded-2xl bg-lienzo/70 px-4 py-3 text-left transition hover:bg-lienzo"
+                    >
+                      <span className="grid size-10 shrink-0 place-items-center rounded-full bg-superficie text-texto-2">
+                        <Icono nombre="candado" className="size-4.5" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold">{p.cliente}</p>
+                        <p className="truncate text-xs text-texto-3">
+                          {p.codigo} · vence {fecha(p.fechaVencimiento)}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-semibold">{moneda(p.monto)}</p>
+                        <Pildora tono={p.atrasada ? "rosa" : "menta"} className="mt-1">
+                          {p.atrasada ? "Atrasada" : "Al día"}
+                        </Pildora>
+                      </div>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Tarjeta>
         </>
       )}
     </div>
