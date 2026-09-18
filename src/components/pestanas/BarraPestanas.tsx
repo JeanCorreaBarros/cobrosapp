@@ -68,7 +68,7 @@ export default function BarraPestanas() {
                   setMenu(menu === pestana.id ? null : pestana.id);
                 }}
                 className={clsx(
-                  "group flex cursor-pointer items-center gap-2 rounded-full py-2 pr-2 pl-3.5 text-sm font-medium transition select-none",
+                  "group flex cursor-pointer items-center gap-2 rounded-full py-2 pr-2 pl-3.5 text-sm font-medium transition-all duration-200 ease-out select-none active:scale-95",
                   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta",
                   arrastrada === indice && "opacity-40",
                   esActiva

@@ -15,7 +15,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
       <ProveedorPestanas>
         <div className="flex min-h-dvh flex-col lg:flex-row">
           <Navegacion sesion={sesion} />
-          <main className="flex min-w-0 flex-1 flex-col px-4 pb-10 lg:py-6 lg:pr-6 lg:pl-0">
+          <main className="flex min-w-0 flex-1 flex-col px-4 pb-[calc(env(safe-area-inset-bottom,0px)+6rem)] lg:py-6 lg:pr-6 lg:pl-0 lg:pb-6">
             {children}
           </main>
         </div>

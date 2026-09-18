@@ -24,42 +24,25 @@ export default function PaginaLogin() {
           </Suspense>
         </div>
 
-        <aside className="relative hidden bg-lienzo p-12 lg:block">
-          <div className="tarjeta-oscura p-6">
-            <div className="flex items-start justify-between">
-              <span className="grid size-10 place-items-center rounded-full bg-white/10">
-                <Icono nombre="historial" className="size-5" />
-              </span>
-              <span className="text-xs text-white/50">Este mes</span>
-            </div>
-            <p className="mt-6 text-3xl font-bold">RD$ 184,500</p>
-            <p className="mt-1 text-sm text-white/60">Recuperado de cartera</p>
-          </div>
-
-          <div className="mt-4 grid grid-cols-2 gap-4">
-            <div className="tarjeta p-5">
-              <span className="grid size-9 place-items-center rounded-full bg-menta text-menta-ink">
-                <Icono nombre="clientes" className="size-4" />
-              </span>
-              <p className="mt-4 text-2xl font-bold">248</p>
-              <p className="text-xs text-texto-2">Clientes activos</p>
-            </div>
-            <div className="tarjeta p-5">
-              <span className="grid size-9 place-items-center rounded-full bg-lila text-lila-ink">
-                <Icono nombre="prestamos" className="size-4" />
-              </span>
-              <p className="mt-4 text-2xl font-bold">96</p>
-              <p className="text-xs text-texto-2">Préstamos vigentes</p>
-            </div>
-          </div>
-
-          <div className="tarjeta mt-4 flex items-center gap-3 p-5">
-            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-durazno text-durazno-ink">
-              <Icono nombre="agenda" className="size-4" />
+        <aside className="relative hidden items-center bg-lienzo p-12 lg:flex">
+          <div className="tarjeta-oscura w-full p-8">
+            <span className="grid size-11 place-items-center rounded-full bg-white/10">
+              <Icono nombre="historial" className="size-5" />
             </span>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">14 cobros para hoy</p>
-              <p className="truncate text-xs text-texto-2">Ruta Centro · 3 atrasados</p>
+            <p className="mt-8 text-xs font-medium text-white/50">Recuperado este mes</p>
+            <p className="mt-2 text-4xl font-bold tracking-tight">$ 184.500.000</p>
+            <p className="mt-1 text-sm text-white/60">COP · Cartera de cobros</p>
+
+            <div className="mt-8 flex items-center gap-6 border-t border-white/10 pt-6">
+              <div>
+                <p className="text-2xl font-bold">248</p>
+                <p className="text-xs text-white/50">Clientes activos</p>
+              </div>
+              <div className="h-8 w-px bg-white/10" />
+              <div>
+                <p className="text-2xl font-bold">96</p>
+                <p className="text-xs text-white/50">Préstamos vigentes</p>
+              </div>
             </div>
           </div>
         </aside>
