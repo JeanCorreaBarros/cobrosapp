@@ -30,6 +30,7 @@ type DatosDashboard = {
     codigo: string;
     cliente: string;
     monto: number;
+    cuotasPendientes: number;
     atrasada: boolean;
   }[];
   polizas: {
@@ -44,6 +45,7 @@ type DatosDashboard = {
       codigo: string;
       cliente: string;
       monto: number;
+      cuotasPendientes: number;
       fechaVencimiento: string;
       atrasada: boolean;
     }[];
@@ -152,7 +154,10 @@ export default function VistaDashboard() {
                         </span>
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-semibold">{c.cliente}</p>
-                          <p className="truncate text-xs text-texto-3">{c.codigo}</p>
+                          <p className="truncate text-xs text-texto-3">
+                            {c.codigo}
+                            {c.cuotasPendientes > 1 && ` · ${c.cuotasPendientes} cuotas`}
+                          </p>
                         </div>
                         <div className="text-right">
                           <p className="text-sm font-semibold">{moneda(c.monto)}</p>
@@ -248,6 +253,7 @@ export default function VistaDashboard() {
                         <p className="truncate text-sm font-semibold">{p.cliente}</p>
                         <p className="truncate text-xs text-texto-3">
                           {p.codigo} · vence {fecha(p.fechaVencimiento)}
+                          {p.cuotasPendientes > 1 && ` · ${p.cuotasPendientes} cuotas`}
                         </p>
                       </div>
                       <div className="text-right">

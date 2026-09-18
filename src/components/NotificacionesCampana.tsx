@@ -13,6 +13,7 @@ type ItemNotificacion = {
   codigo: string;
   cliente: string;
   monto: number;
+  cuotasPendientes: number;
   fechaVencimiento: string;
   atrasada: boolean;
 };
@@ -28,29 +29,60 @@ type Renovacion = {
 };
 
 const INTERVALO_MS = 45_000;
+const CLAVE_DESCARTADOS = "cobro:notificaciones-descartadas";
+
+// La clave incluye el monto/cuotasPendientes: si se descarta una notificación
+// pero la deuda cambia (pagan algo, se acumula otra cuota), deja de coincidir
+// y vuelve a aparecer sola, en vez de quedar oculta para siempre.
+function claveItem(item: ItemNotificacion) {
+  return `cuota:${item.cuotaId}:${item.monto.toFixed(2)}:${item.cuotasPendientes}`;
+}
+function claveRenovacion(r: Renovacion) {
+  return `ren:${r.polizaId}:${r.anioSiguiente}`;
+}
+
+function leerDescartados(): Set<string> {
+  try {
+    const guardado = localStorage.getItem(CLAVE_DESCARTADOS);
+    return new Set(guardado ? JSON.parse(guardado) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function guardarDescartados(claves: Set<string>) {
+  try {
+    localStorage.setItem(CLAVE_DESCARTADOS, JSON.stringify([...claves]));
+  } catch {
+    // localStorage puede fallar (modo privado, storage lleno, etc.); no es crítico.
+  }
+}
 
 /** Campana global (visible en cualquier pantalla, junto a las pestañas
  *  abiertas) con los cobros pendientes para hoy: cuotas de préstamos y de
  *  pólizas de seguridad. Se refresca sola cada INTERVALO_MS, así que si se
  *  deja la app abierta, en cuanto pasa la medianoche del día de vencimiento
- *  de una cuota, esta aparece en la lista sin recargar nada a mano. */
+ *  de una cuota, esta aparece en la lista sin recargar nada a mano. Cada
+ *  notificación se puede descartar (X) para marcarla como vista; queda
+ *  oculta en este navegador hasta que la deuda que representa cambie. */
 export default function NotificacionesCampana() {
   const { abrir } = usePestanas();
-  const [total, setTotal] = useState(0);
-  const [atrasadas, setAtrasadas] = useState(0);
-  const [items, setItems] = useState<ItemNotificacion[]>([]);
-  const [renovaciones, setRenovaciones] = useState<Renovacion[]>([]);
+  const [itemsCrudos, setItemsCrudos] = useState<ItemNotificacion[]>([]);
+  const [renovacionesCrudas, setRenovacionesCrudas] = useState<Renovacion[]>([]);
+  const [descartados, setDescartados] = useState<Set<string>>(new Set());
   const [abierto, setAbierto] = useState(false);
   const contenedor = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setDescartados(leerDescartados());
+  }, []);
 
   const cargar = useCallback(async () => {
     const respuesta = await fetch("/api/notificaciones");
     if (!respuesta.ok) return;
     const datos = await respuesta.json();
-    setTotal(datos.total ?? 0);
-    setAtrasadas(datos.atrasadas ?? 0);
-    setItems(datos.items ?? []);
-    setRenovaciones(datos.renovaciones ?? []);
+    setItemsCrudos(datos.items ?? []);
+    setRenovacionesCrudas(datos.renovaciones ?? []);
   }, []);
 
   useEffect(() => {
@@ -70,7 +102,19 @@ export default function NotificacionesCampana() {
     return () => document.removeEventListener("mousedown", fuera);
   }, [abierto]);
 
-  const totalConAvisos = total + renovaciones.length;
+  function descartar(clave: string) {
+    setDescartados((previo) => {
+      const nuevo = new Set(previo);
+      nuevo.add(clave);
+      guardarDescartados(nuevo);
+      return nuevo;
+    });
+  }
+
+  const items = itemsCrudos.filter((item) => !descartados.has(claveItem(item)));
+  const renovaciones = renovacionesCrudas.filter((r) => !descartados.has(claveRenovacion(r)));
+  const atrasadas = items.filter((i) => i.atrasada).length;
+  const totalConAvisos = items.length + renovaciones.length;
 
   return (
     <div ref={contenedor} className="relative shrink-0">
@@ -95,7 +139,7 @@ export default function NotificacionesCampana() {
         <div className="tarjeta absolute top-full right-0 z-50 mt-2 w-80 overflow-hidden p-0">
           <div className="flex items-center justify-between border-b border-borde px-4 py-3">
             <p className="text-sm font-semibold">Cobros pendientes hoy</p>
-            <Pildora tono={atrasadas > 0 ? "rosa" : "menta"}>{total} en total</Pildora>
+            <Pildora tono={atrasadas > 0 ? "rosa" : "menta"}>{items.length} en total</Pildora>
           </div>
           <div className="max-h-80 overflow-y-auto scroll-fino">
             {items.length === 0 ? (
@@ -105,13 +149,13 @@ export default function NotificacionesCampana() {
             ) : (
               <ul className="divide-y divide-borde">
                 {items.map((item) => (
-                  <li key={item.cuotaId}>
+                  <li key={item.cuotaId} className="group flex items-center">
                     <button
                       onClick={() => {
                         abrir(item.ruta);
                         setAbierto(false);
                       }}
-                      className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-lienzo"
+                      className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left transition hover:bg-lienzo"
                     >
                       <span className="grid size-9 shrink-0 place-items-center rounded-full bg-lienzo text-texto-2">
                         <Icono nombre={item.tipo === "seguridad" ? "candado" : "prestamos"} className="size-4" />
@@ -120,6 +164,7 @@ export default function NotificacionesCampana() {
                         <p className="truncate text-sm font-semibold">{item.cliente}</p>
                         <p className="truncate text-xs text-texto-3">
                           {item.codigo} · vence {fecha(item.fechaVencimiento)}
+                          {item.cuotasPendientes > 1 && ` · ${item.cuotasPendientes} cuotas`}
                         </p>
                       </div>
                       <div className="shrink-0 text-right">
@@ -128,6 +173,14 @@ export default function NotificacionesCampana() {
                           {item.atrasada ? "Atrasado" : "Hoy"}
                         </p>
                       </div>
+                    </button>
+                    <button
+                      onClick={() => descartar(claveItem(item))}
+                      aria-label="Marcar como vista"
+                      title="Marcar como vista"
+                      className="mr-2 grid size-7 shrink-0 place-items-center rounded-full text-texto-3 transition hover:bg-lienzo hover:text-texto"
+                    >
+                      <Icono nombre="cerrar" className="size-3.5" />
                     </button>
                   </li>
                 ))}
@@ -142,13 +195,13 @@ export default function NotificacionesCampana() {
               </div>
               <ul className="max-h-56 divide-y divide-borde overflow-y-auto scroll-fino">
                 {renovaciones.map((r) => (
-                  <li key={r.polizaId}>
+                  <li key={r.polizaId} className="flex items-center">
                     <button
                       onClick={() => {
                         abrir(r.ruta);
                         setAbierto(false);
                       }}
-                      className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-lienzo"
+                      className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left transition hover:bg-lienzo"
                     >
                       <span className="grid size-9 shrink-0 place-items-center rounded-full bg-durazno/60 text-durazno-ink">
                         <Icono nombre="candado" className="size-4" />
@@ -162,6 +215,14 @@ export default function NotificacionesCampana() {
                             : `vence pronto (${r.diasParaFinAnio}d), prepara la de ${r.anioSiguiente}`}
                         </p>
                       </div>
+                    </button>
+                    <button
+                      onClick={() => descartar(claveRenovacion(r))}
+                      aria-label="Marcar como vista"
+                      title="Marcar como vista"
+                      className="mr-2 grid size-7 shrink-0 place-items-center rounded-full text-texto-3 transition hover:bg-lienzo hover:text-texto"
+                    >
+                      <Icono nombre="cerrar" className="size-3.5" />
                     </button>
                   </li>
                 ))}

@@ -100,15 +100,45 @@ export async function GET() {
 
   const cobradoMesPolizas = pagosSeguridadDelMes.reduce((acc, p) => acc + Number(p.monto), 0);
 
-  const proximasPolizas = pendientesSeguridad.slice(0, 8).map((c) => ({
-    cuotaId: `${c.poliza.id}-${c.fechaVencimiento}`,
-    ruta: `/seguridad/${c.poliza.id}`,
-    codigo: c.poliza.codigo,
-    cliente: c.poliza.cliente.nombre,
-    monto: Number(c.montoCuota) - Number(c.montoPagado),
-    fechaVencimiento: c.fechaVencimiento,
-    atrasada: new Date(c.fechaVencimiento) < inicioHoy,
-  }));
+  // Una fila por póliza (no por cuota): si una póliza acumuló varias cuotas
+  // sin pagar, se junta en un solo total pendiente con la fecha de la más
+  // antigua, en vez de repetir una fila por cada cuota vencida.
+  const porPoliza = new Map<
+    string,
+    { ruta: string; codigo: string; cliente: string; monto: number; cuotasPendientes: number; fechaVencimiento: Date }
+  >();
+  for (const c of pendientesSeguridad) {
+    const existente = porPoliza.get(c.poliza.id);
+    const pendiente = Number(c.montoCuota) - Number(c.montoPagado);
+    if (!existente) {
+      porPoliza.set(c.poliza.id, {
+        ruta: `/seguridad/${c.poliza.id}`,
+        codigo: c.poliza.codigo,
+        cliente: c.poliza.cliente.nombre,
+        monto: pendiente,
+        cuotasPendientes: 1,
+        fechaVencimiento: c.fechaVencimiento,
+      });
+    } else {
+      existente.monto += pendiente;
+      existente.cuotasPendientes += 1;
+      if (c.fechaVencimiento < existente.fechaVencimiento) existente.fechaVencimiento = c.fechaVencimiento;
+    }
+  }
+
+  const proximasPolizas = [...porPoliza.entries()]
+    .sort((a, b) => a[1].fechaVencimiento.getTime() - b[1].fechaVencimiento.getTime())
+    .slice(0, 8)
+    .map(([polizaId, p]) => ({
+      cuotaId: polizaId,
+      ruta: p.ruta,
+      codigo: p.codigo,
+      cliente: p.cliente,
+      monto: p.monto,
+      cuotasPendientes: p.cuotasPendientes,
+      fechaVencimiento: p.fechaVencimiento,
+      atrasada: p.fechaVencimiento < inicioHoy,
+    }));
 
   return NextResponse.json({
     porCobrar,
